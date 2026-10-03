@@ -1,4 +1,4 @@
-import {request,money,digits,cleanPhone,escapeHTML,safeImage,busy} from './api.js';
+import {request,money,digits,cleanPhone,escapeHTML,safeImage,busy} from './api.js?v=20261003-connection';
 import {API_READY} from './config.js';
 import {quoteForSlides} from './quote.js';
 import {normalizeJalaliDate,todayJalali} from './jalali.js';
@@ -14,7 +14,52 @@ function telegram(){const user=String(settings.telegram_username||'').replace(/^
 function showPayment(o){currentOrder=o;$('#payment').classList.remove('hidden');$('#pay-order-id').textContent=o.order_id;$('#pay-amount').textContent=money(o.deposit_amount);$('#payment-form').elements.order_id.value=o.order_id;$('#payment-form').elements.phone.value=o.phone||'';$('#payment-form').elements.payment_date.value=todayJalali();$('#card-number').textContent=settings.card_number||'شماره کارت هنوز ثبت نشده است';$('#card-holder').textContent=settings.card_holder||'';$('#payment').scrollIntoView({behavior:'smooth'});telegram()}
 function reveal(){if(!('IntersectionObserver' in window)){document.querySelectorAll('.reveal').forEach(x=>x.classList.add('visible'));return}const observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}},{threshold:.08});document.querySelectorAll('.reveal:not(.visible)').forEach(x=>observer.observe(x))}
 function setOrderAvailability(){const b=$('#order-form button[type=submit]');const hasCard=Boolean(String(settings.card_number||'').trim()&&String(settings.card_holder||'').trim());const ready=API_READY&&backendReady&&pricing.length>0&&hasCard;b.disabled=!ready;b.title=ready?'':'ثبت سفارش پس از تکمیل اطلاعات پرداخت فعال می‌شود.';if(ready)message('#order-message','');else if(!API_READY)message('#order-message','ثبت سفارش پس از اتصال API فعال می‌شود.','error');else if(!backendReady)message('#order-message',backendLoading?'در حال بررسی اتصال Google Apps Script...':'برای ثبت سفارش، نسخهٔ جدید Google Apps Script باید منتشر شود.','error');else if(pricing.length&&!hasCard)message('#order-message','ثبت سفارش پس از تکمیل اطلاعات کارت در پنل مدیریت فعال می‌شود.','error')}
-async function load(){setOrderAvailability();if(!API_READY){backendLoading=false;renderPricing(defaults,true);renderPortfolio(samplePortfolio,true);telegram();setOrderAvailability();return}renderPricing([]);renderPortfolio([]);$('#pricing-note').textContent='در حال دریافت تعرفه‌ها...';$('#portfolio-note').textContent='در حال دریافت نمونه‌کارها...';try{const [p,folio,s,capResult]=await Promise.all([request('getPricing'),request('getPortfolio'),request('getSettings'),request('getCapabilities').then(data=>({data}),error=>({error}))]);renderPricing(p||[]);renderPortfolio((folio||[]).filter(x=>String(x.active).toLowerCase()==='true'||x.active===true));settings=s||{};telegram();backendLoading=false;if(capResult.error||Number(capResult.data?.pricing_version)!==2||!capResult.data?.confirmed_writes||Number(capResult.data?.delivery_version)!==1)throw new Error('نسخهٔ Google Apps Script باید به‌روزرسانی شود.');backendReady=true;setOrderAvailability()}catch(e){backendLoading=false;backendReady=false;setOrderAvailability();message('#order-message',e.message,'error');if(!pricing.length)$('#pricing-note').textContent='دریافت تعرفه‌ها ممکن نشد؛ ثبت سفارش فعلاً در دسترس نیست.';if(!document.querySelector('.portfolio-item'))$('#portfolio-note').textContent='نمونه‌کارهای آنلاین فعلاً در دسترس نیستند.'}}
+function compatibleApi(caps){return Number(caps?.pricing_version)===2&&Boolean(caps?.confirmed_writes)&&Number(caps?.delivery_version)===1}
+async function load(){
+  if(!API_READY){
+    backendLoading=false;
+    renderPricing(defaults,true);
+    renderPortfolio(samplePortfolio,true);
+    telegram();
+    setOrderAvailability();
+    return;
+  }
+  backendLoading=true;
+  backendReady=false;
+  setOrderAvailability();
+  renderPricing([]);
+  renderPortfolio([]);
+  $('#pricing-note').textContent='در حال دریافت تعرفه‌ها...';
+  $('#portfolio-note').textContent='در حال دریافت نمونه‌کارها...';
+  try{
+    // A single Apps Script execution at a time avoids four simultaneous Sheet reads and redirects.
+    let caps=await request('getCapabilities');
+    if(!compatibleApi(caps))caps=await request('getCapabilities');
+    if(!compatibleApi(caps))throw new Error('نسخهٔ Google Apps Script باید به‌روزرسانی شود.');
+    const prices=await request('getPricing');
+    renderPricing(prices||[]);
+    if(!pricing.length)throw new Error('تعرفهٔ فعالی برای ثبت سفارش پیدا نشد.');
+    settings=await request('getSettings')||{};
+    telegram();
+    backendLoading=false;
+    backendReady=true;
+    setOrderAvailability();
+  }catch(e){
+    backendLoading=false;
+    backendReady=false;
+    setOrderAvailability();
+    message('#order-message',e.message,'error');
+    if(!pricing.length)$('#pricing-note').textContent='دریافت تعرفه‌ها ممکن نشد؛ ثبت سفارش فعلاً در دسترس نیست.';
+    $('#portfolio-note').textContent='نمونه‌کارهای آنلاین فعلاً در دسترس نیستند.';
+    return;
+  }
+  try{
+    const folio=await request('getPortfolio');
+    renderPortfolio((folio||[]).filter(x=>String(x.active).toLowerCase()==='true'||x.active===true));
+  }catch{
+    $('#portfolio-note').textContent='نمونه‌کارهای آنلاین فعلاً در دسترس نیستند.';
+  }
+}
 $('#order-pricing').addEventListener('change',updateSummary);
 $('#order-form').elements.slides_count.addEventListener('input',updateSummary);
 async function confirmOrderSaved(order,phone){const saved=await request('getOrder',{order_id:order.order_id,phone});if(saved.order_id!==order.order_id||Number(saved.total_amount)!==Number(order.total_amount)||Number(saved.slides_count)!==Number(order.slides_count))throw new Error('اطلاعات سفارش ذخیره‌شده با پاسخ ثبت مطابقت ندارد.');return saved}
