@@ -11,6 +11,7 @@ assets/css/style.css       طراحی پایه و نسخهٔ چاپ
 assets/css/responsive.css  چیدمان Mobile First و بازآرایی تبلت و دسکتاپ
 assets/js/config.js        تنها محل آدرس API
 assets/js/api.js           لایهٔ ارتباط با Apps Script
+assets/js/pricing.js       تعرفه‌های ثابت سایت و پنل
 assets/js/quote.js         محاسبهٔ مبلغ بر اساس تعداد اسلاید
 assets/js/jalali.js        تاریخ شمسی و اعتبارسنجی آن
 assets/js/site.js          جریان مشتری
@@ -18,13 +19,19 @@ assets/js/admin.js         جریان مدیریت
 apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و اتصال Sheet
 ```
 
-صفحه‌ها را در ریشهٔ مخزن GitHub قرار دهید و GitHub Pages را از همان شاخه و پوشهٔ root فعال کنید. مسیر پنل `/admin/` است. نشانی Web App در `assets/js/config.js` ثبت شده است. نمونه‌کارها و تعرفه‌ها هنگام باز شدن صفحه از API دریافت می‌شوند.
+صفحه‌ها را در ریشهٔ مخزن GitHub قرار دهید و GitHub Pages را از همان شاخه و پوشهٔ root فعال کنید. مسیر پنل `/admin/` است. نشانی Web App در `assets/js/config.js` ثبت شده است. تعرفه‌ها از `assets/js/pricing.js` بدون درخواست شبکه نمایش داده می‌شوند؛ نمونه‌کارها از API دریافت می‌شوند.
+
+## تعرفه‌های ثابت در کد
+
+چهار مبلغ پایهٔ ۱۰ تا ۱۲ اسلایدی به‌ترتیب ساده ۳۸۰٬۰۰۰، حرفه‌ای ۴۹۰٬۰۰۰، انیمیشنی ۷۸۰٬۰۰۰ و گرافیکی و اختصاصی ۸۴۰٬۰۰۰ تومان هستند. سایت عمومی و پنل مدیریت آن‌ها را از `assets/js/pricing.js` می‌خوانند. صفحهٔ تعرفهٔ پنل فقط خواندنی است و دیگر `getPricing` را هنگام باز شدن فراخوانی نمی‌کند.
+
+برای تغییر قیمت، مقادیر `assets/js/pricing.js` و `PRICING_CATALOG` در `apps-script/Code.gs` را یکسان تغییر دهید، فایل‌های سایت را منتشر کنید و از **Deploy → Manage deployments → Edit → New version → Deploy** همان Web App را به‌روزرسانی کنید. پس از انتشار سرور جدید، مبلغ معتبر سفارش نیز از کد محاسبه می‌شود. برگهٔ قدیمی `Pricing` اگر در Spreadsheet فعلی وجود داشته باشد حذف نمی‌شود، اما دیگر خوانده یا ویرایش نمی‌شود.
 
 لینک «پشتیبانی تلگرام» در نوار دسکتاپ و منوی موبایل نمایش داده می‌شود. در موبایل یک دکمهٔ مستقیم هم کنار منو دارد. نشانی لینک از `telegram_username` در تنظیمات پنل خوانده می‌شود؛ تا زمانی که آیدی ثبت نشده باشد، این دو لینک نمایش داده نمی‌شوند.
 
 ## ساختار Google Sheets
 
-تابع `setupSpreadsheet()` این برگه‌ها و سرستون‌ها را می‌سازد: `Orders`, `Customers`, `Payments`, `Deliveries`, `Invoices`, `Pricing`, `Portfolio`, `Settings`, `Admins`. ستون‌های پایهٔ خواسته‌شده حفظ شده‌اند. ستون‌های کمکی برای جریان واقعی اضافه شده‌اند.
+تابع `setupSpreadsheet()` این برگه‌ها و سرستون‌ها را می‌سازد: `Orders`, `Customers`, `Payments`, `Deliveries`, `Invoices`, `Portfolio`, `Settings`, `Admins`. ستون‌های پایهٔ خواسته‌شده حفظ شده‌اند. ستون‌های کمکی برای جریان واقعی اضافه شده‌اند.
 
 | برگه | ستون‌ها |
 | --- | --- |
@@ -33,7 +40,6 @@ apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و �
 | Payments | payment_id, order_id, amount, tracking_number, payment_date, status, verified_at, note, created_at |
 | Deliveries | delivery_id, order_id, file_id, file_name, mime_type, size_bytes, created_at, active |
 | Invoices | invoice_id, order_id, invoice_number, created_at, total_amount, deposit_amount, remaining_amount, status |
-| Pricing | pricing_id, name, price, description, features, active |
 | Portfolio | portfolio_id, title, category, description, image_url, preview_urls, active |
 | Settings | key, value |
 | Admins | admin_id, username, password_hash, salt, active, created_at |
@@ -46,10 +52,10 @@ apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و �
 
 | عمومی | دسترسی مدیریت |
 | --- | --- |
-| getCapabilities, getPricing, getPortfolio, getSettings | login, logout, dashboard |
+| getCapabilities, getPricing (سازگاری), getPortfolio, getSettings | login, logout, dashboard |
 | createOrder, getOrder, submitPayment, getInvoice, downloadDelivery | getOrders, updateOrderStatus, getPayments, approvePayment, rejectPayment |
 | | getDeliveries, uploadDelivery, removeDelivery |
-| | getCustomers, getInvoices, updatePricing, addPortfolio, updatePortfolio, deletePortfolio, updateSettings |
+| | getCustomers, getInvoices, addPortfolio, updatePortfolio, deletePortfolio, updateSettings |
 
 مشتری تعرفه و نمونه‌کار را می‌بیند، سفارش ثبت می‌کند، پس از تأیید ذخیره در Sheet شناسه و مبلغ پیش‌پرداخت را می‌گیرد، کارت‌به‌کارت می‌پردازد و شمارهٔ پیگیری را ثبت می‌کند. مدیر پرداخت را بررسی می‌کند. تأیید پرداخت، وضعیت سفارش را `confirmed` می‌کند و فاکتور یکتا می‌سازد. پیگیری و فاکتور عمومی فقط با **شمارهٔ سفارش و شمارهٔ تماس همان سفارش** برمی‌گردند. دادهٔ همهٔ مشتریان و سفارش‌ها فقط با نشست مدیریت در Apps Script قابل دریافت است.
 
@@ -58,7 +64,7 @@ apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و �
 ## راه‌اندازی
 
 1. یک Spreadsheet خصوصی بسازید. از **Extensions → Apps Script**، محتوای `apps-script/Code.gs` را در پروژهٔ متصل به همان Spreadsheet قرار دهید.
-2. `setupSpreadsheet()` را یک‌بار از ویرایشگر اجرا و مجوزها را تأیید کنید. تعرفه‌های اولیه و کلیدهای Settings ساخته می‌شوند.
+2. `setupSpreadsheet()` را یک‌بار از ویرایشگر اجرا و مجوزها را تأیید کنید. برگه‌های عملیاتی و کلیدهای Settings ساخته می‌شوند؛ تعرفه‌ها در کد هستند.
 3. در **Project Settings → Script Properties**، دو مقدار `BOOTSTRAP_ADMIN_USERNAME` و `BOOTSTRAP_ADMIN_PASSWORD` بگذارید. `setupAdmin()` را یک‌بار اجرا کنید. تابع، هش رمز را در برگهٔ `Admins` ثبت و مقادیر خام را از Script Properties حذف می‌کند.
 4. در برگهٔ Settings، `card_number`، `card_holder`، `telegram_username`، `contact_phone` و `site_title` را تکمیل کنید.
 5. از **Deploy → New deployment → Web app**، اجرا با حساب خودتان و دسترسی **Anyone** را انتخاب کنید. Spreadsheet را منتشر یا عمومی نکنید؛ Web App فقط actionهای مجاز را افشا می‌کند. URL انتهایی `/exec` در `assets/js/config.js` ثبت شده است؛ اگر Deployment جدیدی ساختید، مقدار آن را به‌روزرسانی کنید.
@@ -87,7 +93,7 @@ apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و �
 
 ## تغییرات تعرفه، تاریخ و تأیید ثبت
 
-- قیمت هر تعرفه برای ۱۰ تا ۱۲ اسلاید است. برای کمتر از ۱۰ اسلاید نیز همان حداقل مبلغ پایه محاسبه می‌شود. برای `n > 12`، مبلغ کل برابر است با `round(base × (1 + (n - 12) / 10))`. فرانت‌اند فقط پیش‌نمایش محاسبه را نشان می‌دهد؛ مبلغ معتبر در Apps Script از تعرفهٔ فعال Sheet محاسبه و در Orders ثبت می‌شود.
+- قیمت هر تعرفه برای ۱۰ تا ۱۲ اسلاید است. برای کمتر از ۱۰ اسلاید نیز همان حداقل مبلغ پایه محاسبه می‌شود. برای `n > 12`، مبلغ کل برابر است با `round(base × (1 + (n - 12) / 10))`. فرانت‌اند پیش‌نمایش را از کد سایت محاسبه می‌کند؛ پس از انتشار `Code.gs` جدید، مبلغ معتبر در Apps Script نیز از کد محاسبه و در Orders ثبت می‌شود.
 - تاریخ واریز در فرم به‌شکل شمسی `YYYY/MM/DD` یا هشت رقم پشت‌سرهم وارد و در Payments به‌صورت متن `YYYY/MM/DD` ذخیره می‌شود. ارقام فارسی پذیرفته و به قالب یکنواخت تبدیل می‌شوند. برای سازگاری با نسخهٔ قبلی فرم، API تاریخ میلادی `YYYY-MM-DD` را نیز به شمسی تبدیل می‌کند.
 - `createOrder` پس از نوشتن سفارش، `SpreadsheetApp.flush()` و بازخوانی ردیف را انجام می‌دهد. سایت پس از پاسخ موفق، با `getOrder` همان سفارش را دوباره بررسی می‌کند و فقط سپس مرحلهٔ پرداخت را باز می‌کند. اگر بازخوانی دوم قطع شود، شمارهٔ سفارش و دکمهٔ تأیید دوباره نمایش داده می‌شود.
 - `submitPayment` نیز پس از ذخیرهٔ تاریخ و شماره پیگیری، ردیف Payments را بازخوانی می‌کند.
@@ -103,11 +109,11 @@ apps-script/Code.gs        API، اعتبارسنجی، منطق سفارش و �
 
 ## وضعیت اتصال فعلی
 
-نشانی Web App در `assets/js/config.js` ثبت شده است. در بررسی زنده، `getCapabilities` و `getPricing` و مسیر ورود مدیریت پاسخ معتبر دادند؛ چهار تعرفه دریافت شد. این بررسی ثابت می‌کند استقرار API در دسترس است، اما دسترسی مرورگر هر بازدیدکننده را تضمین نمی‌کند. عملیات نوشتنی روی Sheet واقعی بدون سفارش آزمایشی انجام نشده است.
+نشانی Web App در `assets/js/config.js` ثبت شده است. در بررسی زنده، قیمت‌های فعلی برگهٔ `Pricing` با چهار تعرفهٔ ثابت کد تطبیق داشتند؛ بنابراین تا زمان انتشار `Code.gs` جدید، محاسبهٔ سفارش با نسخهٔ فعلی سرور نیز همان مبلغ را می‌دهد. عملیات نوشتنی روی Sheet واقعی بدون سفارش آزمایشی انجام نشده است.
 
 ## عیب‌یابی «زمان ارتباط تمام شد»
 
 - پاسخ‌های Content Service گوگل پس از درخواست به `script.googleusercontent.com` هدایت می‌شوند. مرورگر باید به هر دو دامنهٔ `script.google.com` و `script.googleusercontent.com` دسترسی داشته باشد.
 - مهلت درخواست‌های معمول، از جمله ورود مدیریت، ۶۰ ثانیه است؛ درخواست‌های ثبت و تغییر اطلاعات ۹۰ ثانیه و انتقال فایل ۱۲۰ ثانیه مهلت دارند. خطای زمان‌پایان‌یافته الزاماً به معنی قطع بودن خود Google Sheets نیست.
-- درخواست‌های آغازین به‌ترتیب، هر بار یکی، فرستاده می‌شوند تا چند اجرای هم‌زمان Apps Script روی یک صفحه ایجاد نشود. پس از آماده‌شدن ثبت سفارش، نمونه‌کارها جداگانه بارگذاری می‌شوند؛ خرابی موقت آن‌ها ثبت سفارش را از کار نمی‌اندازد.
+- تعرفه‌ها هیچ درخواست آغازینی به Apps Script ندارند. بررسی قابلیت‌ها و دریافت تنظیمات به‌ترتیب انجام می‌شوند؛ پس از آماده‌شدن ثبت سفارش، نمونه‌کارها جداگانه بارگذاری می‌شوند.
 - اگر یک درخواست نوشتنی زمان‌پایان شد، پیش از ارسال دوباره نتیجه را بررسی کنید؛ ممکن است نوشتن در Sheet انجام شده باشد ولی پاسخ به مرورگر نرسیده باشد.
