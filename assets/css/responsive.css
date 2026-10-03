@@ -263,4 +263,4 @@ img,svg,video{max-width:100%}
 
 .pricing-rule{border-inline-start:2px solid var(--accent);padding-inline-start:16px;margin:0 0 24px;color:#bfc0ca;line-height:1.9;max-width:58rem}.pricing-rule strong{color:#f5f2ff}.line-form input[name=payment_date]{text-align:left;letter-spacing:.04em}
 
-.price-summary .quote-note{margin-bottom:12px;color:#bcb7d3;font-size:14px}.line-form #retry-order{align-self:flex-start;min-height:44px;color:var(--accent)}
+.price-summary .quote-note{margin-bottom:12px;color:#bcb7d3;font-size:14px}
